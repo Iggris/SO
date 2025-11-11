@@ -1,0 +1,33 @@
+Kiedy powstaje nowa grupa procesów i jak trafiają do niej etapy potoku?
+
+Po forku pierwszego etapu powłoka zakłada nową grupę o PGID równym PID tego etapu.
+W logu: rodzic (powłoka, PID 56101) po clone(...) = 56134 wykonuje
+setpgid(56134, 56134) = 0 — czyli robi z pierwszego dziecka lidera grupy. 
+Kolejne etapy potoku są dołączane do tej samej grupy lidera (56134).
+W logu widać to dla drugiego i trzeciego dziecka: w rodzicu setpgid(56135,56134)=0 i setpgid(56136,56134)=0 
+
+Dlaczego setpgid(2) jest wołane i w rodzicu (powłoce), i w dziecku?
+
+POSIX dopuszcza, że albo rodzic, albo dziecko ustawi grupę,
+żeby uniknąć wyścigu (dziecko może bardzo wcześnie wykonać execve 
+albo rodzic może chwilowo nie mieć do niego dostępu). 
+Obie strony próbują, a jedna z prób zwykle „wygrywa”  
+
+Kiedy ustawiana jest grupa pierwszoplanowa (foreground) terminala?
+Dla interaktywnej powłoki na początku widać przygotowanie uchwytu do TTY 
+i ustawienie własnej grupy jako foreground (ioctl(TIOCSPGRP, [56101])). 
+Przy uruchamianiu potoku foreground jest ustawiane na PGID potoku. 
+W logu widać wywołania ioctl(TIOCSPGRP, [56134]) tuż po zgrupowaniu procesów
+co ciekawe, robią to procesy potomne (PID 56135 i 56136) zanim przejdą do execve. 
+Mechanicznie efekt jest ten sam: terminal przechodzi w ręce grupy 56134 (potoku).
+Po zakończeniu potoku powłoka przywraca siebie jako foreground: ioctl(10, TIOCSPGRP, [56101]). 
+Dzięki temu znowu to powłoka odbiera sygnały z TTY (np. Ctrl-C/Ctrl-Z) i echo wraca do promptu.
+
+
+Jak powłoka ustala kod wyjścia potoku?
+W logu widać, że powłoka czeka na wszystkie etapy potoku i zbiera ich statusy: 
+kolejne wait4(-1, ...) = 56134, potem = 56135, potem = 56136, z dekodowaniem WIFEXITED/WEXITSTATUS.
+Standardowe zachowanie to przyjąć kod wyjścia ostatniego polecenia w potoku. 
+U nas wszystkie etapy kończą się 0; 
+widać to w zebranych statusach i brak błędów w końcowym prompt’cie. 
+wait4 dokładnie pokazuje, że powłoka widzi 0 dla każdego dziecka.

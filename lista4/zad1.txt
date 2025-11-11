@@ -1,0 +1,33 @@
+Do czego służy kod sterujący «CPR» opisany w CSI sequences?:
+Wysylajac do terminala DSR(6), czyli ESC [ 6 n – „podaj pozycję kursora”.
+CPR zwraca pozycje kursora, przkazujac ESC[n;mR, gdzie n jest wierszem i m jest kolumna.
+
+
+TCGETS – pobierz bieżące ustawienia terminala (strukturę termios).
+To dokładnie to samo, co tcgetattr(fd, &t). Używasz do odczytu aktualnych flag, prędkości, znaków specjalnych. 
+
+TCSETSW – ustaw nowe parametry po opróżnieniu wyjścia (drain).
+Równoważne tcsetattr(fd, TCSADRAIN, &t): kernel poczeka, aż bufor wyjściowy się wysyci 
+(wszystko zostanie wysłane), i dopiero wtedy zmieni tryb. 
+Przydatne, by nie „przeciąć” transmisji w połowie znaku/ramki. 
+
+TIOCINQ – podaj liczbę bajtów oczekujących w kolejce wejściowej TTY (ile da się natychmiast odczytać). 
+Semantycznie jak FIONREAD dla TTY; zwraca licznik przez argument wskaźnikowy. 
+
+TIOCSTI – „wstrzyknij” znak do kolejki wejściowej jakby został wpisany z klawiatury (symulacja naciśnięcia).
+
+Flagi z termios(4)
+
+ECHO (c_lflag) – echo znaków wpisywanych z klawiatury na ekran.
+Włączone: to, co wpisujesz, jest od razu wyświetlane. 
+Wyłączone: wpis nie jest pokazywany (np. hasła). 
+
+
+ICANON (c_lflag) – tryb kanoniczny (liniowy) vs niekanoniczny.
+Włączone: linia jest buforowana i edytowalna, read() zwraca dopiero po zakończeniu linii (\n, VEOF). 
+Wyłączone: znaki trafiają do programu „na bieżąco”; zachowanie steruje się VMIN/VTIME. 
+
+
+CREAD (c_cflag) – włącz odbiornik znaków.
+Gdy ustawione: TTY przyjmuje dane z wejścia. 
+Gdy wyczyszczone: odbiór jest wyłączony (znaki są ignorowane na poziomie sterownika).

@@ -1,0 +1,13 @@
+echo -e "Dzwonek:\a"; read #dzwiek
+echo -e "Tekst i backspace: ABC\bD" ; read
+echo -e "Powrót karetki:\rNADPISANE"                  ; read
+echo -e "Kol1\tKol2\tKol3"                            ; read
+echo -e "Linia A\nLinia B\nLinia C"                   ; read
+echo -e "\e[2J\e[HStart w lewym górnym rogu"; read
+echo -e "\e[5;10HUstawiono kursor na (5,10)"; read
+
+
+Klucz: cat niczego nie interpretuje (nie rozumie \n, \e[31m,...). 
+On tylko czyta bajty i wypisuje je 1:1. Tworzenie kolorów, czyszczenia ekranu itd. dzieje się albo w programie, 
+który te sekwencje wytworzył (echo -e, printf), albo w terminalu, który takie sekwencje interpretuje (CSI).
+

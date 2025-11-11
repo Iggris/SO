@@ -1,0 +1,15 @@
+kolejnosc kommend:
+a) osierocenie procesu
+1) xterm -e 'bash -i' & zwroci <PID xterma>
+2) w xterm sleep 1000 &
+3) echo $$ i jobs -l zwroci <PID BASHA> <PID SLEEPA>
+4) w glownym terminalu ps -o pid,ppid,pgid,sid,tty,stat,comm -p <PID SLEEPA> <PID BASHA>
+5) w glownym terminalu strace -e trace=signal -p <PID BASHA>
+6) zabij basha czyli kill -KILL <PID BASHA>
+7) w glowny terminal ps -o pid,ppid,pgid,sid,tty,stat,comm -p <PID SLEEPA> (powinno zwrocic PIDD 1)
+b) zabicie xterma
+1) xterm -e 'bash -i' & zwroci <PID xterma>
+2) wchodzimy do xterma i sleep 1000 &
+3) echo $$ i jobs -l zwroci  <PID BASHA> <PID SLEEPA>
+4) w glownym terminalu strace -e trace=signal -p <PID BASHA>
+5) zabij xterma kill -KILL <PID xterma>

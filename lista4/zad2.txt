@@ -1,0 +1,52 @@
+Program script(1), tworzy kopię wszystkich danych wejściowych i wyjściowych podczas sesji terminala. 
+Program robi to, umieszczając się pomiędzy terminalem a nowym wywołaniem naszej powłoki. 
+program script jest zwykle uruchamiany z powłoki logowania, 
+która następnie czeka na zakończenie działania programu script. 
+Podczas działania programu script wszystko, co jest wysyłane przez dyscyplinę linii terminala 
+powyżej slave PTY, jest kopiowane do pliku script (zwykle nazywanego typescript). 
+Ponieważ nasze naciśnięcia klawiszy są zwykle powtarzane przez ten moduł dyscypliny linii, 
+plik script zawiera również nasze dane wejściowe. 
+Plik skryptu nie będzie jednak zawierał żadnych haseł, które wprowadzamy, ponieważ hasła nie są powtarzane. 
+Wadą korzystania ze skryptu jest jednak konieczność radzenia sobie z znakami sterującymi 
+obecnymi w pliku skryptu.
+
+
+komendy do wykoania zadania:
+rm -f timing typescript script.log script.log.*
+strace -ff -e read,write -o script.log \
+  script -T timing -c dash
+
+
+ls -1 timing typescript script.log*
+
+ONLCR   /* map NL to CR-NL
+grep -n -- $'write(1, ".*\\n' script.log* | head -n 3
+
+script.log.19037:4:write(1, "Script started, output log file is 'typescript', timing file is 'timing'.\n", 74) = 74
+script.log.19037:12:write(1, "pwd\r\necho \"Ala ma kota\"\r\nstty -a\r\nexit 42\r\n/home/igris\r\n$ ", 58) = 58
+script.log.19037:14:write(1, "Ala ma kota\r\n$ ", 15)       = 15
+                                                                                                                                                                                                                                           
+grep -n -- $'read(3, ".*\\r\\n' script.log* | head -n 3
+script.log.19037:15:read(3, "speed 38400 baud; rows 54; columns 235; line = 0;\r\nintr = ^C; quit = ^\\; erase = ^H; kill = ^U; eof = ^D; eol = <undef>; eol2 = <undef>; swtch = <undef>; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; "..., 8192) = 326
+script.log.19037:17:read(3, "-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr -igncr icrnl -ixon -ixoff -iuclc -ixany -imaxbel iutf8\r\n", 8192) = 110
+script.log.19037:19:read(3, "opost -olcuc -ocrnl onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0 ff0\r\nisig icanon iexten echo echoe echok -echonl -noflsh -xcase -tostop -echoprt echoctl echoke -flusho -extproc\r\n", 8192) = 190
+
+ICRNL    /* map CR to NL
+
+
+grep -n -- $'write(3, ".*\\r' script.log* | head -n 5
+
+script.log.19037:10:write(3, "pwd\recho \"Ala ma kota\"\rstty -a\rexit 42\r", 39) = 39
+                                                                                                                                                                                                                                           
+grep -n -- $'read(0, ".*\\n' script.log* | head -n 5
+
+script.log.19038:14:read(0, "pwd\n", 8192)                  = 4
+script.log.19038:17:read(0, "echo \"Ala ma kota\"\n", 8192) = 19
+script.log.19038:20:read(0, "stty -a\n", 8192)              = 8
+script.log.19038:23:read(0, "exit 42\n", 8192)              = 8
+
+
+
+Pseudoterminal (PTY) to para wirtualnych urządzeń znakowych emulujących zwykły terminal:
+master (np. uchwyt otwarty przez program script, ssh, emulator terminala)
+slave (np. /dev/pts/2, widziany przez procesy jak prawdziwy TTY)

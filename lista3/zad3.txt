@@ -1,0 +1,18 @@
+Sygnały (job control wynikają z isig)
+intr = ^C → SIGINT
+quit = ^\ → SIGQUIT
+susp = ^Z → SIGTSTP
+
+Edycja wiersza (tryb kanoniczny icanon)
+erase = ^H – kasuje poprzedni znak
+kill = ^U – kasuje cały bieżący wiersz
+werase = ^W – kasuje poprzednie słowo
+rprnt = ^R – „odrysuj” bieżący wiersz
+lnext = ^V – wstaw następny znak dosłownie
+discard = ^O – chwilowo odrzucaj wyjście
+eof = ^D – koniec danych/wiersza
+eol, eol2 = <undef> – brak alternatywnych zakończeń linii
+
+
+
+Gdy rozmiar okna terminala się zmieni, jądro wysyła do procesu sygnał SIGWINCH (WINdow CHange).

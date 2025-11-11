@@ -1,0 +1,85 @@
+grep -nE 'clone\(|vfork\(|fork\(|execve\(|pipe2?\(|dup[23]?\(|close\(|openat\(' pipeline.log | head -n 120
+
+
+0) Powłoka (PID 56101) parsuje linię i buduje potok
+
+Tworzy pierwszą rurę [3,4] dla połączenia ps → grep:
+pipe2([3, 4], 0) (powłoka).
+
+fork pierwszego dziecka (ps):
+clone(...) = 56134 (powłoka).
+
+1) proces potoku – ps -ef (PID 56134)
+
+Ustawia stdout na koniec do zapisu pierwszej rury:
+dup2(4, 1) = 1 (dziecko 56134).
+
+Zamyka niepotrzebne końce rury (np. close(3), close(4) po dup2).
+
+Uruchamia program: execve("/usr/bin/ps", ["ps","-ef"], ...).
+
+W rodzicu (powłoce) zamykany jest koniec do zapisu tej rury, bo nie będzie używany: 
+np. close(5)/close(4) w dalszym ciągu budowy.
+
+2) Powłoka (PID 56101) wstawia środkowy etap grep sh
+
+Tworzy drugą rurę [4,5] dla połączenia grep → wc:
+pipe2([4, 5], 0) (powłoka).
+
+fork drugiego dziecka (grep):
+clone(...) = 56135 (powłoka).
+
+3) proces potoku – grep sh (PID 56135)
+
+Ustawia stdin na koniec do odczytu pierwszej rury:
+dup2(3, 0) = 0 (dziecko 56135).
+
+Ustawia stdout na koniec do zapisu drugiej rury:
+dup2(5, 1) = 1 (dziecko 56135).
+
+Zamyka zbędne deskryptory (np. close(3), close(5) po dup2).
+
+Uruchamia program: execve("/usr/bin/grep", ["grep","sh"], ...).
+
+W rodzicu zamykane są już niepotrzebne końce rur 
+(koniec zapisu pierwszej rury i koniec zapisu drugiej w powłoce), 
+pozostaje koniec do odczytu drugiej rury dla trzeciego etapu.
+
+4) Powłoka (PID 56101) przygotowuje końcowy etap wc -l > cnt
+
+Szuka wc, po czym fork trzeciego dziecka:
+clone(...) = 56136 (powłoka).
+
+5) proces potoku – wc -l z przekierowaniem do pliku (PID 56136)
+
+Ustawia stdin na koniec do odczytu drugiej rury:
+dup2(4, 0) = 0 (dziecko 56136).
+
+Otwiera plik wyjściowy z utworzeniem:
+openat(AT_FDCWD, "cnt", O_WRONLY|O_CREAT|O_TRUNC, 0666) = 3
+to jest właśnie openat z O_CREAT (creat) i robi to proces wc, nie powłoka.
+
+Przekierowuje stdout do tego pliku:
+dup2(3, 1) = 1; close(3) (dziecko 56136).
+
+Uruchamia program: execve("/usr/bin/wc", ["wc","-l"], ...).
+
+6) Sprzątanie i oczekiwanie
+
+Powłoka zamyka u siebie pozostałe końce rur (np. close(4) po uruchomieniu wc) i czeka na potomków: wait4(-1, ...).
+Rury tworzy powłoka przed forkiem każdego etapu potoku: 
+jedna rura na krawędź potoku (ps→grep i grep→wc). Widać to po pipe2(...) wykonywanym przez PID 56101.
+Po forku każde dziecko zamienia sobie odpowiednie końce rur na stdin/stdout przez dup2, 
+a nieużywane końce zamyka (close). Przykłady: dup2(4,1) w ps, dup2(3,0) i dup2(5,1) w grep, dup2(4,0) w wc.
+Redirekcję do pliku (> cnt) realizuje ostatni proces potoku (tu wc), 
+który sam robi openat(..., O_CREAT|O_TRUNC) i dup2(plik, 1). Nie robi tego powłoka.
+Każdy etap kończy się execve(...) uruchamiając właściwy program: odpowiednio ps, grep, wc.
+
+
+Potok to mechanizm przekazywania danych między procesami, 
+tak aby wynik jednego programu był wejściem dla drugiego.
+
+Rura to kanał komunikacyjny w jądrze systemu. Anonimowe rury używane, 
+gdy proces nadrzędny tworzy proces potomny. Używane właśnie w potokach (|). Nie mają nazwy w systemie plików.
+Standardowe wyjście: To domyślny kanał wyjścia programu – miejsce, gdzie trafiają dane wypisywane przez program.
+Zazwyczaj jest to ekran (terminal).

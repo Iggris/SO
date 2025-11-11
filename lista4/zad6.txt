@@ -1,0 +1,16 @@
+W tym kodzie wyścig znajduje się pomiędzy wywołaniem access() a Open(), 
+gdyż w czasie pomiędzy wywołaniami inny proces może otworzyć plik, 
+przez co oba procesy otrzymają blokadę. Aby tego uniknąć, należy zmienić implementację funkcji f_lock 
+na bardziej "jednolitą", tzn. korzystającą tylko z jednej operacji, tak jak niżej:
+bool f_lock(const char *path) {
+    return Open(path, O_CREAT | O_EXCL | O_WRONLY, 0700) >= 0;
+}
+Dodanie flagi O_EXCL obok O_CREAT sprawia, że Open() nie powiedzie się jeśli ścieżka path już istnieje, 
+a uzyskanym błędem będzie EEXIST.
+Błąd Time of Check To Time of Use (TOCTTOU) umożliwia atakującemu ominięcie sprawdzania poprawności operacji 
+poprzez celową zmianę danych w momencie gdy program znajduje się pomiędzy ich sprawdzeniem a wykonaniem 
+operacji
+Słabość TOCTTOU może występować zawsze wtedy, 
+gdy atakujący ma wpływ na stan obiektu lub zasobu pomiędzy sprawdzeniem jego stanu, 
+a jego użyciem. Występować to może w przypadku systemu plików, pamięci, 
+a nawet zmiennych w wielowątkowych programach.

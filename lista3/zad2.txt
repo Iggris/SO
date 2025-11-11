@@ -1,0 +1,29 @@
+Jak zachowuje się sterownik terminala działającego w trybie kanonicznym?
+Sterownik skada znaki w linie 
+
+
+
+„next character read from device”, bajty z klawiatury trafiają do kolejki wejściowej.
+Przetwarzanie kanoniczne:
+jeśli to zwykły znak → dopisywany do bufora bieżącego wiersza (do limitu MAX_INPUT);
+jeśli to znak edycyjny (VERASE, VKILL, VWERASE, …) → modyfikuje bufor zamiast go dopisywać;
+jeśli to znak sygnałowy i ISIG jest aktywne → generuje sygnał dla procesu, nie ląduje w danych;
+VEOF kończy wiersz bez dodawania \n.
+„next character read by process” – dopiero po zakończeniu wiersza read() zwraca dane aplikacji.
+Echo → kolejka wyjściowa (po lewej):
+Jeśli ECHO jest włączone, każdy wpisany znak (a także reakcje edycyjne, np. kasowanie) jest odbijany 
+do kolejki wyjściowej.
+„Writing Data and Output Processing”: zanim trafi do urządzenia, działają reguły wyjścia 
+„next character to transmit to device” – sterownik wysyła znaki do terminala.
+Strzałka „if echo enabled” na rysunku to właśnie kopiowanie z kolejki wejściowej 
+do wyjściowej przy aktywnym ECHO.
+
+
+
+Na czas wprowadzania hasła program zwykle:
+wyłącza echo: ECHO=0 (żeby hasło nie było widoczne),
+zostawia tryb kanoniczny (ICANON=1) – żeby użytkownik mógł normalnie edytować wiersz i zatwierdzić Enterem,
+
+
+Bo potrzebują reakcji na każdy klawisz natychmiast, a nie dopiero po Enterze, 
+oraz pełnej kontroli nad symbolami sterującymi.

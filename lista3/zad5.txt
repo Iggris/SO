@@ -1,0 +1,26 @@
+1)
+sleep 1000 &
+jobs -l
+sudo strace -e trace=signal -p <PID>
+fg %1
+ctrl+Z
+bg %1
+2)
+To efekt programowej kontroli przepływu XON/XOFF w sterowniku terminala:
+Ctrl+S to znak VSTOP (XOFF). Sterownik terminala przechwytuje ten znak (nie trafia on do procesu) i 
+wstrzymuje wysyłanie danych na terminalu. zatrzymuje opróżnianie kolejki wyjściowej.
+Ctrl+Q to znak VSTART (XON). Sterownik wznawia transmisję i kolejka wyjściowa znowu się opróżnia.
+Tu nie biorą udziału sygnały (jak przy Ctrl+C/Ctrl+Z). Proces find po prostu blokuje się na write() 
+bo sterownik nie odbiera kolejnych bajtów dopóki nie dostanie Ctrl+Q. 
+Gdy wznowisz, sterownik wypycha zaległe dane i write() wraca – dlatego find rusza dalej.
+3)
+Bo cat zostal uruchuminy w tle, a on próbuje czytać z terminala (stdin). 
+W powłokach z kontrolą zadań, gdy proces w tle próbuje czytać z kontrolującego terminalu, 
+jądro wysyła do całej jego grupy procesów sygnał SIGTTIN, który zatrzymuje zadanie (stop, jak po Ctrl+Z).
+4)
+Flaga tostop w terminalu (ustawiana przez stty tostop) nakazuje sterownikowi terminala zatrzymywać każdą grupę 
+procesów działającą w tle, która próbuje pisać na terminal (stdout/stderr). 
+Jądro wysyła wtedy do tej grupy SIGTTOU (SIGTTIN dla prób czytania), 
+którego domyślne działanie to stop. Dlatego cat w tle zatrzymuje się przy pierwszym write() na terminalu.
+5)
+-echoctl tylko ukrywa wizualne „^C/^Z/^\”

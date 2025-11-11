@@ -1,0 +1,49 @@
+Dlaczego nie read(2) / write(2) na katalogach?
+
+read(2) na katalogu: w Linuksie jest to zabronione; jądro zwraca błąd EISDIR („Is a directory”). 
+POSIX nie definiuje czytania katalogu jako strumienia bajtów — układ katalogu jest wewnętrzną strukturą FS, 
+nie stabilnym plikiem do czytania.
+
+write(2) na katalogu: również zabronione; modyfikacje katalogu muszą zachowywać spójność i atomowość 
+(dowiązania, nazwy, i-węzły), więc robi się je specjalnymi wywołaniami 
+(link(2), unlink(2), rename(2), mkdir(2), rmdir(2) i ich warianty *at), a nie surowym zapisem bajtów.
+
+Jak wczytać „rekord katalogu” (directory entry)?
+getdents(2)/getdents64(2)— zwraca zmiennowymiarowe rekordy dirent64 
+dla otwartego deskryptora katalogu (zwykle otwartego z O_DIRECTORY).
+
+Dlaczego zawartość katalogu nie jest posortowana?
+
+System plików optymalizuje wyszukiwanie i wstawianie, nie kolejność. 
+FS trzymają wpisy w hash-drzewach / B-drzewach, więc kolejność odczytu jest „jaka wyjdzie” 
+(zależna od struktury, historii wstawek itp.).
+
+Dla katalogu liczba dowiązań to:
+
+2 za wpisy . (do siebie) i .. (do katalogu nadrzędnego),
+
++ 1 za każdą bezpośrednią pod-katalog wewnątrz danego katalogu.
+
+
+metadane- czyli informacje o plikach, procesach, użytkownikach itp., 
+które pomagają systemowi i użytkownikowi zrozumieć, co to za dane, 
+do kogo należą i jak mają być używane, bez konieczności analizowania ich zawartości.
+
+Dowiązanie twarde (hard link)
+To alternatywna nazwa do tego samego pliku.
+Nie tworzy nowego pliku, tylko kolejny wpis w systemie plików, który wskazuje na ten sam obiekt (inode).
+
+Jak to działa:
+Każdy plik w systemie plików ma tzw. inode – strukturę zawierającą metadane 
+i wskaźnik na faktyczne dane (zawartość).
+
+Gdy tworzysz hard link, powstaje nowy wpis katalogowy, który wskazuje na ten sam inode.
+
+Jeśli więc zmienisz zawartość jednego pliku, drugi automatycznie też się zmieni, 
+bo odwołują się do tych samych danych.
+
+Plik nie znika z dysku, dopóki ostatni hard link nie zostanie usunięty.
+
+
+Rekord katalogu to wpis w katalogu, który łączy nazwę pliku z jego metadanymi, 
+a dokładniej — z jego inode’em (czyli strukturą opisującą plik).
