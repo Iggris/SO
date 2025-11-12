@@ -2,7 +2,7 @@
 
 i-node to struktura przechowująca metadane pliku. Zawiera on wskaźniki na bloki danych oraz bloki pośrednie,
 zależnie od wielkości pliku.
-
+namei -l /usr/bin/cc
 stat /usr/bin/cc   
   Plik: /usr/bin/cc -> /etc/alternatives/cc
   rozmiar: 20           bloków: 0          bloki I/O: 4096   dowiązanie symboliczne
