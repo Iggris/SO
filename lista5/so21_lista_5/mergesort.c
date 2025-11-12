@@ -54,64 +54,24 @@ static void Sort(int parent_fd) {
   int nelem = ReadNum(parent_fd);
 
   if (nelem < 2) {
-      WriteNum(parent_fd, ReadNum(parent_fd));
-      Close(parent_fd);
-      return;
+    WriteNum(parent_fd, ReadNum(parent_fd));
+    Close(parent_fd);
+    return;
   }
 
   sockpair_t left = MakeSocketPair();
   /* TODO: Spawn left child. */
-  if (Fork() == 0) {
-      // Close file descriptors so we do not write
-      // to them when we have more than 2 elements
-      // and we sort them [elements].
-      Close(left.parent_fd);
-      Close(parent_fd);
-
-      Sort(left.child_fd);
-      exit(0);
-  }
-  // After sorting we close fd of the left child.
-  Close(left.child_fd);
 
   sockpair_t right = MakeSocketPair();
   /* TODO: Spawn right child. */
-  if (Fork() == 0) {
-      // Similarly to left child, we close fd, but
-      // in this case we need to close also left,
-      // as it might be open.
-      Close(left.parent_fd);
-      Close(right.parent_fd);
-      Close(parent_fd);
 
-      Sort(right.child_fd);
-      exit(0);
-  }
-  // After sorting we close fd of the right child.
-  Close(right.child_fd);
-  
   /* TODO: Send elements to children and merge returned values afterwards. */
-  const int32_t left_half  = nelem / 2;
-  const int32_t right_half = nelem - left_half;
-  
-  // We send elements from parent to child and
-  // the number of elements in each half. Then
-  // we merge results (from childs' fds) and
-  // save them in parent's fd.
-  SendElem(parent_fd, left.parent_fd,  left_half);
-  SendElem(parent_fd, right.parent_fd, right_half);
-  Merge(left.parent_fd, right.parent_fd, parent_fd);
-
-  // At the end we need to close every fd we used,
-  // so there are none left open.
-  Close(parent_fd);
-  Close(left.parent_fd);
-  Close(right.parent_fd);
 
   /* Wait for both children. */
   Wait(NULL);
   Wait(NULL);
 }
+
 static int GetNumber(void) {
   char buf[20];
   if (fgets(buf, sizeof(buf), stdin) == NULL)

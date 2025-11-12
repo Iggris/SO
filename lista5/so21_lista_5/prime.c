@@ -44,10 +44,44 @@ static void filter(pipe_t in, pipe_t out, long prime) {
 static noreturn void filter_chain(pipe_t in) {
   long prime;
 
-  /* TODO: Something is missing here! */
+  /* Próba odczytu pierwszej liczby (to będzie liczba pierwsza). 
+     Jeśli się nie uda (EOF), kończymy łańcuch. */
+  if (!ReadNum(in, &prime)) {
+    CloseReadEnd(in);
+    exit(EXIT_SUCCESS);
+  }
 
-  exit(EXIT_SUCCESS);
+  /* Wypisz znalezioną liczbę pierwszą. */
+  printf("%ld\n", prime);
+  fflush(stdout);
+
+  /* Utwórz rurę do następnego filtra. */
+  pipe_t next = MakePipe();
+
+  pid_t pid = Fork();
+  if (pid == 0) {
+    /* Dziecko: kontynuuje łańcuch filtrów (czyli będzie "głową" kolejnego węzła) */
+    CloseWriteEnd(next);      /* dziecku potrzebny jest tylko next.read */
+    CloseReadEnd(in);         /* dziecko nie czyta ze "starego" wejścia */
+    filter_chain(next);       /* rekurencyjnie buduj łańcuch */
+    /* noreturn */
+  } else {
+    /* Rodzic: staje się filtrem dla znalezionej liczby pierwszej "prime".
+       Czyta z 'in.read' i przekazuje dalej do 'next.write' wszystkie liczby
+       niepodzielne przez 'prime'. */
+    CloseReadEnd(next);       /* rodzic używa tylko next.write */
+    filter(in, next, prime);  /* kopiuje niepodzielne */
+
+    /* Po EOF zamknij używane końce rur. */
+    CloseReadEnd(in);
+    CloseWriteEnd(next);
+
+    /* Poczekaj, aż dziecko (kolejny węzeł łańcucha) skończy. To zapobiega zombi. */
+    Wait(NULL);
+    exit(EXIT_SUCCESS);
+  }
 }
+
 
 int main(int argc, char *argv[]) {
   if (argc != 2)
