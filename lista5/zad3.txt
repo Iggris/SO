@@ -1,0 +1,14 @@
+Nieużytek to nieużywany fragment reprezentacji katalogu, rozmiar wpisu, 
+po którym występuje nieużytek jest większy niż nazwa pliku.
+
+Kompaktowanie to operacja, która zmniejsza rozmiar katalogu,
+usuwane są nieużytki, "uklepujemy" katalog. 
+Opłąca się ją robić, gdy wiadomo, że w danym katalogu jest dużo nieużytków, 
+czyli zystamy na tej operacji dużo miejsca.
+
+Dodawanie pliku: Trzeba przejrzeć cały katalog, żeby sprawdzić, czy jest dany plik w tym katalogu. 
+Jeśli nie ma miejsca, wykonywane jest kompaktowanie.
+
+Usuwanie pliku: Przegląda się cały katolog, żeby wiedzieć, czy jest plik. 
+Po usunięciu pliku miejsce, gdzie był ten plik staje się nieużytkiem, pliki nie są od razu przesuwane, 
+lecz przestawiany jest wskaźnik przy poprzednim pliku (entry size).

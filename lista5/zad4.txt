@@ -1,0 +1,31 @@
+Ścieżka bezwzględna to ścieżka zaczynająca się od katalogu /.
+
+i-node to struktura przechowująca metadane pliku. Zawiera on wskaźniki na bloki danych oraz bloki pośrednie,
+zależnie od wielkości pliku.
+
+stat /usr/bin/cc   
+  Plik: /usr/bin/cc -> /etc/alternatives/cc
+  rozmiar: 20           bloków: 0          bloki I/O: 4096   dowiązanie symboliczne
+Urządzenie: 8,1 inody: 342101      dowiązań: 1
+Dostęp: (0777/lrwxrwxrwx)  Uid: (    0/    root)   Gid: (    0/    root)
+Dostęp:      2025-11-04 14:12:35.072532210 -0500
+Modyfikacja: 2024-01-31 08:01:22.000000000 -0500
+Zmiana:      2024-10-07 08:30:59.732762000 -0400
+Utworzenie:  2024-10-07 08:30:59.732762000 -0400
+
+Algorytm trawersuje od i-node'a nr 2, gdyż jest to numer katalogu /.
+
+W jądrze (na ext4) pozycja i-tego bajtu wyznaczana jest przez tłumaczenie 
+„offset w pliku → blok logiczny → blok fizyczny” zapisane w metadanych i-węzła. 
+Najpierw z bajtowego offsetu obliczany jest numer logicznego bloku pliku 
+(dla rozmiaru bloku B: LBN = floor(i/B)) oraz przesunięcie wewnątrz bloku (i % B). 
+Następnie sterownik ext4 odczytuje z i-węzła odwzorowanie bloków. 
+
+Dowiązania są częścią systemu plików, a system zamontowany może mieć inny sposób przechowywania ich. 
+Dowiązania są zawsze tworzone do i-node'a, który nie jest dzielony między różnymi systemami plików. 
+W dwóch systemach plików możemy mieć dwa pliki o tym samym numerze i-node.
+
+Nie możemy tworzyć dowiązań do innych zamomtowanych systemów plików, 
+aby licznik zawierał informacje o dowiązaniach w obrębie systemu plików, 
+i aby nie doszło do sytuacji, gdy po utworzeniu dowiązania i odłączeniu systemu plików, 
+dane z niego nie zostaną nigdy usunięte nawet po zniszczeniu wszystkich lokalnych dowiązań 

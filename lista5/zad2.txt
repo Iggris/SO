@@ -1,0 +1,50 @@
+Wywołanie systemowe ioctl() (input/output control) to wywołanie systemowe do specyficznych dla 
+danego urządzenia operacji I/O i innych operacji, których nie można wyrazić zwykłymi syscallami. 
+Funkcja ta wygląda następująco:
+
+int ioctl(int fd, unsigned long request, ...);
+fd jest otwartym deskryptorem pliku, a request to zależny od urządzenia kod żądania (danej operacji) - 
+koduje on informację o tym, czy argument jest parametrem wejściowym czy wyjściowym 
+i rozmiar kolejnego argumentu argp w bajtach, 
+trzecim parametrem jest nietypowany wskaźnik do pamięci, zwykle char *argp, zanim void* było poprawne w C.
+
+Urządzenie znakowe służy do odczytywania/zapisywania danych z/do urządzenia znak po znaku. Z zasady nie są buforowane i służą do komunikacji o charakterze strumieniowym. Są to między innymi wszelkie konsole /dev/tty0, /dev/tty1, wirtualne konsole /dev/pts/0, /dev/pts/1, modemy, myszki, pamięć RAM, generatory liczb pseudolosowych, generator zer czy "czarna dziura" (/dev/null).
+
+Urządzenie blokowe pozwala na odczytywanie/zapisywanie danych blokami, czyli większymi grupami bajtów mającymi postać: sektorów, kilobajtów czy klastrów. W większości przypadków konieczność operowania na blokach wymuszona jest logiczną budową urządzenia. Są to między innymi dyski /dev/hda, /dev/sdb, partycje, dyskietki, pętle zwrotne.
+
+W nxr.netbsd.org można podejrzeć kod jądra NetBSD i znaleźć definicje różnych operacji:
+
+DIOCEJECT (ang. eject removable disk) - wysuwa dysk wymienny
+KIOCTYPE (ang. get keyboard type) - zwraca typ klawiatury:
+KB_SUN3 - Sun Type 3 keyboard
+KB_SUN4 - Sun Type 4 keyboard
+KB_ASCII - ASCII terminal masquerading as keyboard
+KB_PC - Type 101 PC keyboard
+KB_USB - USB keyboard
+SIOCGIFCONF (ang. get ifnet list) - zwraca listę ifnet, czyli interfejsów jądra do zarządzania sieciami
+
+
+
+
+Dlaczego interfejs jest „brzydki”
+1. Brak spójności i przejrzystości
+a) Każdy sterownik definiuje własne kody (TIOCSBRK, FIONREAD, TCGETS itp.).
+b) Brak jednolitego API – różne urządzenia działają inaczej.
+c) Narusza zasadę prostoty i jednolitości Uniksa.
+
+2. Nieprzenośność
+a) Zestawy kodów ioctl różnią się między systemami (Linux, BSD, Solaris...).
+b) Programy są trudne do przeniesienia między platformami.
+c) Łamie ideę portability – kluczową dla filozofii Uniksa.
+
+3. Brak bezpieczeństwa typów
+a) Argument void *argp → brak sprawdzania typów w kompilacji.
+b) Łatwo o błędy (zły typ struktury, zły rozmiar, błędny wskaźnik).
+
+4. Zła koncepcja projektowa
+a) Unix zakłada, że „wszystko jest plikiem”.
+b) ioctl() i fcntl() łamią ten model, bo wprowadzają specjalne komendy zamiast korzystać z read() i write().
+
+5. Chaos i nieczytelność
+a) ioctl() może robić cokolwiek – brak jasnego zakresu funkcji.
+b) Dokumentacja jest ogromna i niespójna

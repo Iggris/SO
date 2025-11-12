@@ -1,0 +1,60 @@
+a) read(2) i write(2) na rurze (pipe):
+
+1) read na pustej rurze:
+Są jacyś otwarci piszący (co najmniej jeden write-end wciąż otwarty): blokuje do czasu, 
+aż pojawią się bajty (chyba, że deskryptor ma O_NONBLOCK → wtedy zwraca -1 z EAGAIN/EWOULDBLOCK).
+Nie ma piszących (wszystkie końce do zapisu zamknięte): zwraca 0 (EOF).
+
+2) write na pełnej rurze
+Jest co najmniej jeden czytający (read-end otwarty): blokuje, 
+aż zwolni się miejsce (chyba, że O_NONBLOCK → wtedy -1 z EAGAIN/EWOULDBLOCK lub krótki zapis).
+Nie ma czytających (read-end zamknięty): wywołanie kończy się sygnałem SIGPIPE (domyślnie zabija proces); 
+jeśli sygnał zignorujemy lub przechwycimy, write zwraca -1 z EPIPE.
+
+
+b) Gwarancje przy wielu piszących (PIPE_BUF)
+
+POSIX gwarantuje atomowość pojedynczego write o długości ≤ PIPE_BUF: dane z takiego zapisu wejdą do rury w 
+jednym kawałku, bez przeplotu z zapisami innych procesów.
+Skutek: jeśli każdy proces pisze „wiersze” krótsze niż PIPE_BUF 
+(zwykle 4096 bajtów, ale należy odczytać z pathconf), to w czytaniu nie nastąpi 
+pomieszanie bajtów między wierszami. Dla zapisów > PIPE_BUF atomowość nie jest gwarantowana 
+mogą być dzielone i przeplatane.
+
+c) Dlaczego wszystkie procesy w potoku ps -ef | grep sh | wc -l same się kończą, gdy którykolwiek umrze?
+
+Potok to łańcuch rur. Gdy proces pośrodku/na końcu umrze albo zamknie wejście:
+W dół strumienia: następny czytający dostaje EOF i kończy.
+W górę strumienia: poprzedni piszący ma już brak czytelników na swoim końcu rury → jego write dostaje SIGPIPE / EPIPE i też się kończy.
+To wywołuje kaskadę: nikt nie musi „sprzątać” ręcznie — powłoka tylko czeka, aż dzieci zakończą.
+
+d) Kiedy read/write zwracają „short count” (mniej bajtów niż proszono)?
+
+read (short read):
+Gdy w chwili odblokowania dostępnych jest mniej bajtów niż count 
+(na rurach to normalne: dostaniesz „ile jest”, byle ≥ 1).
+Koniec pliku na zwykłych plikach (blisko EOF).
+O_NONBLOCK + coś jest w buforze, ale mało → dostaniesz tyle, ile jest.
+(Sygnał może przerwać read → -1/EINTR; jeśli coś już odczytano, część systemów może zwrócić tę część).
+
+write (short write):
+Gdy próbujesz zapisać więcej niż PIPE_BUF i mieści się tylko część 
+(kernel może wcisnąć „ile się da” i zwrócić mniejszą liczbę bajtów).
+O_NONBLOCK + mało miejsca w buforze (czasem 0 z EAGAIN, czasem część bajtów; 
+gwarancji atomowości brak, poza ≤ PIPE_BUF).
+Na zwykłych plikach short write bywa np. przez limity przestrzeni itp.
+
+e) Jak połączyć rodzica i dziecko rurą utworzoną dopiero po uruchomieniu dziecka?
+
+Anonimową rurę (pipe(2)) trzeba utworzyć przed fork(), żeby oba procesy odziedziczyły końce. 
+Po fakcie:
+FIFO (nazwana rura): zrobic mkfifo(1)/mkfifo(3), a potem rodzic i dziecko otwierają plik FIFO 
+po ścieżce w systemie plików.
+
+
+Jednokierunkowe: rura przesyła bajty tylko w jednym kierunku 
+z końca do zapisu do końca do odczytu. Jeśli chcesz dwustronnie, użyj dwóch rur albo socketpair.
+
+Bufor: pamięć pośrednia w jądrze, w której kolejkują się dane między producentem (piszącym) 
+a konsumentem (czytającym). Ma skończony rozmiar; gdy się zapełni, write blokuje/zwra­ca błąd w O_NONBLOCK; 
+gdy jest pusty, read blokuje/zwra­ca EAGAIN w O_NONBLOCK.
