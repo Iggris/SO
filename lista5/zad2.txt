@@ -35,13 +35,13 @@ SIOCGIFCONF (ang. get ifnet list) - zwraca listę ifnet, czyli interfejsów jąd
 Dlaczego interfejs jest „brzydki”
 1. Brak spójności i przejrzystości
 a) Każdy sterownik definiuje własne kody (TIOCSBRK, FIONREAD, TCGETS itp.).
-b) Brak jednolitego API – różne urządzenia działają inaczej.
+b) Brak jednolitego API– różne urządzenia działają inaczej.
 c) Narusza zasadę prostoty i jednolitości Uniksa.
 
 2. Nieprzenośność
 a) Zestawy kodów ioctl różnią się między systemami (Linux, BSD, Solaris...).
 b) Programy są trudne do przeniesienia między platformami.
-c) Łamie ideę portability – kluczową dla filozofii Uniksa.
+c) Łamie ideę portability– kluczową dla filozofii Uniksa.
 
 3. Brak bezpieczeństwa typów
 a) Argument void *argp → brak sprawdzania typów w kompilacji.
@@ -52,5 +52,5 @@ a) Unix zakłada, że „wszystko jest plikiem”.
 b) ioctl() i fcntl() łamią ten model, bo wprowadzają specjalne komendy zamiast korzystać z read() i write().
 
 5. Chaos i nieczytelność
-a) ioctl() może robić cokolwiek – brak jasnego zakresu funkcji.
+a) ioctl() może robić cokolwiek– brak jasnego zakresu funkcji.
 b) Dokumentacja jest ogromna i niespójna
