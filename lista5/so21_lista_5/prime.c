@@ -44,39 +44,37 @@ static void filter(pipe_t in, pipe_t out, long prime) {
 static noreturn void filter_chain(pipe_t in) {
   long prime;
 
-  /* Próba odczytu pierwszej liczby (to będzie liczba pierwsza). 
-     Jeśli się nie uda (EOF), kończymy łańcuch. */
+  /*odczytuje liczby. Jeśli się nie uda (EOF) */
   if (!ReadNum(in, &prime)) {
     CloseReadEnd(in);
     exit(EXIT_SUCCESS);
   }
 
-  /* Wypisz znalezioną liczbę pierwszą. */
+  /* Wypisz liczbe pierwsza */
   printf("%ld\n", prime);
   fflush(stdout);
 
-  /* Utwórz rurę do następnego filtra. */
+  /* rura do nastepniego filtra */
   pipe_t next = MakePipe();
 
   pid_t pid = Fork();
   if (pid == 0) {
-    /* Dziecko: kontynuuje łańcuch filtrów (czyli będzie "głową" kolejnego węzła) */
+    /* Dziecko: kontynuuje łancuch filtrow (czyli będzie "głowa" kolejnego wezła) */
     CloseWriteEnd(next);      /* dziecku potrzebny jest tylko next.read */
-    CloseReadEnd(in);         /* dziecko nie czyta ze "starego" wejścia */
-    filter_chain(next);       /* rekurencyjnie buduj łańcuch */
-    /* noreturn */
+    CloseReadEnd(in);         /* dziecko nie czyta ze "starego" wejscia */
+    filter_chain(next);       /* rekurencyjnie buduj łancuch */
   } else {
-    /* Rodzic: staje się filtrem dla znalezionej liczby pierwszej "prime".
+    /* Rodzic: staje sie filtrem dla znalezionej liczby pierwszej "prime".
        Czyta z 'in.read' i przekazuje dalej do 'next.write' wszystkie liczby
        niepodzielne przez 'prime'. */
-    CloseReadEnd(next);       /* rodzic używa tylko next.write */
+    CloseReadEnd(next);       /* rodzic uzywa tylko next.write */
     filter(in, next, prime);  /* kopiuje niepodzielne */
 
-    /* Po EOF zamknij używane końce rur. */
+    /*zamkanie uzywanych koncow rur*/
     CloseReadEnd(in);
     CloseWriteEnd(next);
 
-    /* Poczekaj, aż dziecko (kolejny węzeł łańcucha) skończy. To zapobiega zombi. */
+    /*To zapobieganie zombi (czekamy kiedy dzicko sie skonczy). */
     Wait(NULL);
     exit(EXIT_SUCCESS);
   }
