@@ -8,9 +8,15 @@ koduje on informację o tym, czy argument jest parametrem wejściowym czy wyjśc
 i rozmiar kolejnego argumentu argp w bajtach, 
 trzecim parametrem jest nietypowany wskaźnik do pamięci, zwykle char *argp, zanim void* było poprawne w C.
 
-Urządzenie znakowe służy do odczytywania/zapisywania danych z/do urządzenia znak po znaku. Z zasady nie są buforowane i służą do komunikacji o charakterze strumieniowym. Są to między innymi wszelkie konsole /dev/tty0, /dev/tty1, wirtualne konsole /dev/pts/0, /dev/pts/1, modemy, myszki, pamięć RAM, generatory liczb pseudolosowych, generator zer czy "czarna dziura" (/dev/null).
+Urządzenie znakowe służy do odczytywania/zapisywania danych z/do urządzenia znak po znaku. 
+Z zasady nie są buforowane i służą do komunikacji o charakterze strumieniowym. 
+Są to między innymi wszelkie konsole /dev/tty0, /dev/tty1, wirtualne konsole /dev/pts/0, /dev/pts/1, 
+modemy, myszki, pamięć RAM, generatory liczb pseudolosowych, generator zer czy "czarna dziura" (/dev/null).
 
-Urządzenie blokowe pozwala na odczytywanie/zapisywanie danych blokami, czyli większymi grupami bajtów mającymi postać: sektorów, kilobajtów czy klastrów. W większości przypadków konieczność operowania na blokach wymuszona jest logiczną budową urządzenia. Są to między innymi dyski /dev/hda, /dev/sdb, partycje, dyskietki, pętle zwrotne.
+Urządzenie blokowe pozwala na odczytywanie/zapisywanie danych blokami, czyli większymi grupami 
+bajtów mającymi postać: sektorów, kilobajtów czy klastrów. 
+W większości przypadków konieczność operowania na blokach wymuszona jest logiczną budową urządzenia.
+Są to między innymi dyski /dev/hda, /dev/sdb, partycje, dyskietki, pętle zwrotne.
 
 W nxr.netbsd.org można podejrzeć kod jądra NetBSD i znaleźć definicje różnych operacji:
 
