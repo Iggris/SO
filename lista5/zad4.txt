@@ -15,7 +15,7 @@ Utworzenie:  2024-10-07 08:30:59.732762000 -0400
 
 Algorytm trawersuje od i-node'a nr 2, gdyż jest to numer katalogu /.
 
-W jądrze (na ext4) pozycja i-tego bajtu wyznaczana jest przez tłumaczenie 
+W jądrze pozycja i-tego bajtu wyznaczana jest przez tłumaczenie 
 „offset w pliku → blok logiczny → blok fizyczny” zapisane w metadanych i-węzła. 
 Najpierw z bajtowego offsetu obliczany jest numer logicznego bloku pliku 
 (dla rozmiaru bloku B: LBN = floor(i/B)) oraz przesunięcie wewnątrz bloku (i % B). 

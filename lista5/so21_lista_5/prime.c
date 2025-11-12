@@ -103,3 +103,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+// /prime 10000 | wc -l   
