@@ -1,0 +1,58 @@
+Tożsamość procesu to zbiór identyfikatorów użytkowników i grup powiązanych z danym procesem. 
+Real ID definuje kto jest właścicielem procesu. Na większości implementacji UNIXa effective ID jest używane 
+w celu określenia uprawnień procesu przy dostępie do zasobów (takich jak pliki), 
+jednak na Linuxie filesystem IDs są wykorzystywane w tym celu, a effective ID dla innych uprawnień. 
+ID z zadania oznaczają kolejno: ruid - real user ID, euid - effective user ID oraz suid - saved user ID.
+
+
+Na samym początku tożsamość procesu to ruid=1000, euid=0, suid=0. 
+Kolejne przykłady są od siebie niezależne, więc tożsamość zmienia się tylko raz dla każdej funkcji:
+
+setuid(2000) - po tym wywołaniu zostają zmienione wszystkie pola na 2000. 
+Spowodowane jest to tym, że euid jest uprzywilejowane (0 == root), a wtedy zmieniane są też ruid oraz suid. 
+Finalnie mamy ruid=2000, euid=2000, suid=2000.
+
+
+setuid() sets the effective user ID of the calling process. If the calling process is privileged 
+(more precisely: if the process has the CAP_SETUID capability in its user namespace), 
+the real UID and saved set-user-ID are also set.
+
+setreuid(-1, 2000) - funkcja przyjmuje jako argumenty (ruid, euid) typu uid_t i jeżeli dostanie -1 jako któryś 
+z argumentów, to ta wartość pozostanie niezmieniona. Stąd mamy ruid=1000 (niezmienione) oraz euid=2000. 
+Z ostatniego paragrafu mamy, iż po zmianie ruid lub euid, zmienia się równiaż suid na wartość nowego euid. 
+Ostatecznie mamy więc ruid=1000, euid=2000, suid=2000.
+
+
+setreuid() sets real and effective user IDs of the calling process.
+Supplying a value of -1 for either the real or effective user ID forces the system to leave that ID unchanged.
+Unprivileged processes may only set the effective user ID to the real user ID, 
+the effective user ID, or the saved set-user-ID.
+Unprivileged users may only set the real user ID to the real user ID or the effective user ID.
+If the real user ID is set (i.e., ruid is not -1) or the effective user ID is set to a value not equal 
+to the previous real user ID, the saved set-user-ID will be set to the new effective user ID.
+
+seteuid(2000) - proces jest uprzywilejowany, więc zmieniane jest euid, 
+a więc tożsamość procesu zmieniana jest na ruid=1000, euid=2000, suid=0.
+seteuid() sets the effective user ID of the calling process. 
+Unprivileged processes may only set the effective user ID to the real user ID, 
+the effective user ID or the saved set-user-ID.
+
+setresuid(-1, 2000, 3000) - funkcja przyjmuje jako argumenty (ruid, euid, suid), 
+podobnie jak w przypadku setreuid są one typu uid_t i wartość -1 któregoś argumentu oznacza brak zmiany. 
+Proces jest uprzywilejowany, więc zostawiamy ruid (argument -1), pozostałe zmieniamy. 
+Mamy więc: ruid=1000, euid=2000, suid=3000.
+
+
+setresuid() sets the real user ID, the effective user ID, and the saved set-user-ID of the calling process.
+An unprivileged process may change its real UID, effective UID, and saved set-user-ID, 
+each to one of: the current real UID, the current effective UID or the current saved set-user-ID.
+A privileged process (on Linux, one having the CAP_SETUID capability) may set its real UID, 
+effective UID, and saved set-user-ID to arbitrary values.
+If one of the arguments equals -1, the corresponding value is not changed.
+Regardless of what changes are made to the real UID, effective UID, and saved set-user-ID, 
+the filesystem UID is always set to the same value as the (possibly new) effective UID.
+
+Proces z tożsamością ruid=0, euid=1000, suid=1000 nie jest uprzywilejowany, 
+gdyż effective user ID nie jest uprzywilejowany, a więc cały proces też nie jest. 
+Używając system callów możnaby było jednak przywrócić tożsamość tego procesu, 
+aby ponownie był uprzywilejowany.

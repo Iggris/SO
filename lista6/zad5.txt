@@ -1,0 +1,108 @@
+1. Co robi exit(3) ?
+
+exit(status) to „grzeczne” zakończenie programu:
+Zapamiętuje kod wyjścia procesu: to ten, który potem odczytuje proces-rodzic (wait, waitpid).
+Wywołuje wszystkie funkcje zarejestrowane przez atexit() (i podobne mechanizmy) – 
+w odwrotnej kolejności rejestracji.
+
+Opróżnia i zamyka wszystkie strumienie stdio:
+opróżnia bufory wyjściowe (jak po fflush),
+zamyka strumienie (jak fclose), co zamyka deskryptory plików.
+Sprząta po bibliotece standardowej (np. usuwa pliki tymczasowe związane ze strumieniami).
+Dopiero na samym końcu woła prymitywne zakończenie procesu w jądrze (jak _exit(2)).
+
+2. Problemy z buforowaniem stdio przy fork, execve i _exit
+a) fork(2) – duplikowanie wypisanego, ale zbuforowanego tekstu
+Po fork() bufory stdio są skopiowane do procesu potomnego razem z pamięcią procesu.
+
+Typowy problem:
+Proces coś wypisuje na stdout, ale to kończy się w buforze (bez \n, bez fflush).
+Następuje fork().
+Rodzic i dziecko mają identyczne bufory w pamięci.
+Jeśli i rodzic, i dziecko zakończą się przez exit(), to ofiashują ten sam bufor dwa razy → 
+ten sam tekst pojawia się dwa razy na wyjściu.
+
+Jak temu zapobiec?
+Przed fork() opróżnić wszystkie bufory stdio (wykonanie ogólnego flush wszystkich strumieni).
+W procesie potomnym, który ma natychmiast kończyć, używać _exit(), żeby:
+nie wołać atexit,
+nie flushować odziedziczonych buforów biblioteki.
+
+b) execve(2) – utrata danych, które siedzą w buforze
+
+execve() nie wykonuje żadnego flush stdio. Po prostu ładuje nowy program, 
+a stara pamięć procesu (w tym bufory) znika.
+
+Jeżeli:
+
+coś wypisałeś przez printf/fprintf, ale to zostało w buforze 
+(bo nie było \n, bufor nie był pełny i nie było fflush),
+a potem zrobisz execve(),
+to ten tekst nigdy nie trafi do jądra, bo bufor został skasowany.
+
+Jak temu zapobiec?
+Przed execve() ręcznie opróżnić wszystkie bufory stdio.
+Ewentualnie tak ustawić buforowanie, aby istotne strumienie były:
+liniowo buforowane (flush na każdej linii),
+lub w ogóle niebuforowane.
+
+c) _exit(2) – świadome „zignorowanie” stdio
+
+_exit:
+
+nie wywołuje funkcji atexit,
+nie opróżnia buforów stdio.
+Jeżeli coś jest jeszcze w buforach (np. printf bez \n) i zrobisz _exit, to ten tekst zostanie utracony.
+To jest zamierzony efekt – _exit jest używane głównie:
+w procesie potomnym tuż po fork(), kiedy:
+chcesz szybko wyjść, i nie chcesz drugi raz wypisywać tego, co zostało zbuforowane w procesie nadrzędnym.
+
+3. Domyślny sposób buforowania strumieni stdio
+
+Strumień związany z terminalem (TTY)
+domyślnie: buforowanie liniowe→ bufor opróżnia się po napotkaniu znaku nowej linii albo gdy bufor się zapełni.
+
+Strumień związany ze zwykłym plikiem
+domyślnie: pełne (blokowe) buforowanie→ opróżnienie bufora dopiero przy:
+zapełnieniu,
+ręcznym flushu,
+zamknięciu strumienia,
+wyjściu z programu przez exit.
+
+
+stderr
+domyślnie: niebuforowany→ każde wywołanie wypisujące na stderr 
+od razu trafia do jądra (bez przetrzymywania w buforze stdio).
+
+
+
+
+
+Funkcje obsługi sygnału:
+
+niedozwolone: printf(), sprintf(), malloc(), exit(), funkcje z stdio, itp.
+bezpieczne : write(), , sleep(), wait(), waitpid(), kill(), _exit(), tcflush
+Aby poprawnie opróżnić wszystkie bufory przed zamknięciem programu, 
+powinniśmy w procedurze obsługi sygnały SIGINT użyć tcflush(), dzięki czemu nie utracimy danych z buforów.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

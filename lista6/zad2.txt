@@ -1,0 +1,69 @@
+Bity rwx dla katalogów pełnią następującą rolę:
+
+r (read) pozwala na pozyskanie listy wszystkich plików w katalogu,
+
+w (write) pozwala na tworzenie, zmienianie nazw oraz kasowanie plików w katalogu, 
+jak i modyfikowanie atrybutów katalogu
+
+x (execute) pozwala na przechodzenie po katalogu, gdy jest on w ścieżce, do której chcemy się dostać, 
+tzn. można dzięki temu dostać się do wszystkich plików i katalogów w środku. 
+Czasami ten bit nazywany jest search bit ze względu na swoje działanie.
+
+
+Dzięki bitowi set-gid w katalogu, wszystkie nowo tworzone pliki i katalogi stają się własnością grupy
+będącej właścicielem katalogu, zwykle atrybut ten jest dziedziczony przez nowo tworzone podkatalogi.
+
+Bit sticky w katalogu pozwala na usuwanie/zmienianie uprawnień tylko właścicielowi owego katalogu. 
+Bit ten jest stosowany często w /tmp, do którego mogą mieć dostęp wszyscy użytkownicy systemu, 
+przez co użytkownicy nie mogą usuwać plików nienależących do nich.
+
+Pseudokod procedury bool my_access(struct stat *sb, int mode) znajduje się poniżej, 
+jej celem jest sprawdzenie czy proces ma upoważniony dostęp mode do pliku o metadanych wczytanych do sb. 
+Głównie interesować nas będzie wartość st_mode przekazanej struktury sb, 
+gdyż w niej zakodowane są uprawnienia na najmniej znaczących bitach.
+
+#define MAX_GROUPS_NUMBER 1024
+bool my_access(struct stat *sb, int mode) {
+    uid_t uid = getuid();
+    gid_t gid = getgid();
+    gid_t groups[MAX_GROUPS_NUMBER];
+    int ngroups = getgroups(MAX_GROUPS_NUMBER, groups);
+
+    // 1. Root – uproszczona wersja (możesz opisać w komentarzu)
+    if (uid == 0) {
+        if (mode & X_OK) {
+            // root zwykle wymaga, żeby któryś bit execute był ustawiony
+            if (!(sb->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+                return false;
+        }
+        // R_OK i W_OK – przyjmijmy, że zawsze
+        return true;
+    }
+
+    int perm_bits; // 0-7 = rwx
+
+    // 2. Właściciel pliku
+    if (uid == sb->st_uid) {
+        perm_bits = (sb->st_mode >> 6) & 0x7;      // user rwx
+    } else {
+        // 3. Sprawdź, czy jesteśmy w grupie pliku
+        bool in_group = (gid == sb->st_gid);
+        for (int i = 0; i < ngroups && !in_group; i++) {
+            if (groups[i] == sb->st_gid)
+                in_group = true;
+        }
+
+        if (in_group) {
+            perm_bits = (sb->st_mode >> 3) & 0x7;  // group rwx
+        } else {
+            perm_bits = sb->st_mode & 0x7;         // others rwx
+        }
+    }
+
+    // 4. Dopasuj do żądanego mode
+    if ((mode & R_OK) && !(perm_bits & 4)) return false;
+    if ((mode & W_OK) && !(perm_bits & 2)) return false;
+    if ((mode & X_OK) && !(perm_bits & 1)) return false;
+
+    return true;
+}

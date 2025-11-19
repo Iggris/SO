@@ -1,0 +1,65 @@
+Projektowanie programów powinno opierać się na tworzeniu ich w taki sposób, 
+aby korzystały z jak najmniejszych upoważnień (ang. the least privilege), aby były bezpieczniejsze. 
+Zwykle zwiększone uprawnienia przydają się tylko do wykonania pewnych operacji, 
+a później program działa w normalnym trybie – wszystkie niepotrzebne uprawnienia wtedy powinny być wyłączone,
+a gdy nie będą potrzebne już wcale, powinny zostać zabrane całkowicie. Odbywać się to może tak:
+
+uid_t orig_euid = geteuid(); // zapisujemy oryginalny effective user ID
+
+if (seteuid(getuid()) == -1)  // zabieramy uprawnienia
+	errExit("seteuid");
+	
+// wykonujemy operacje niewymagające uprawnień
+
+if (seteuid(orig_euid) == -1) // oddajemy uprawnienia
+	errExit("seteuid");
+
+// wykonujemy operacje wymagające uprawnień
+
+Całkowite zabranie uprawnień może odbywać sie w taki sposób:
+if (setreuid(getuid(), getuid()) == -1)
+	errExit("setreuid");
+
+Przypisujemy więc do ruid oraz euid ID użytkownika (nieuprzywilejowanego), 
+gdy program nie jest uruchomiony jako root. Użycie setuid() jest w tym celu niewystarczające 
+(do niektórych zmian tożsamości euid musi być równe 0, a więc jest to root), 
+dlatego należy skorzystać z funkcji setreuid() lub setresuid().
+
+Należy pamiętać, że przed uruchomieniem kolejnego programu poprzez exec(), system(), popen() czy inne polecenia,
+musimy pozbyć się uprawnień całkowicie, aby uruchomiony program nie miał nieoczekiwanych uprawnień 
+oraz żeby nie przywrócił sobie zapisanych.
+
+W przypadku exec() wystarczy wywołać przed nim setuid(getuid()), 
+gdyż pomyślne wykonanie exec() kopiuje tylko euid, podobnie działa to dla zmiany ID grupy.
+
+Powinniśmy unikać uruchamiania powłoki z uprawnieniami – są one tak złożone, 
+że nie jesteśmy w stanie uniknąć wszystkich znajdujących się w nich luk, 
+nawet jeśli uruchomiona powłoka nie zezwala na interakcje. 
+Ryzykiem płynącym z uruchomienia powłoki z uprawnieniami jest między innymi możliwość uruchomienia komend
+powłoki z euid procesu. Jeśli mamy potrzebę uruchomienia powłoki,
+powinniśmy najpierw odrzucić wszystkie uprawnienia.
+
+Zamykanie wszystkich deskryptorów plików (niepotrzebnych) przed wywołaniem exec() jest kolejnym przymusem. 
+Uprzywilejowany program może otwierać pliki, których nie może uruchomić normalny proces. 
+Wtedy otworzony deskryptor pliku jest uprzywilejowanym zasobem. 
+Powinniśmy zamknąć deskryptor poleceniem close() lub korzystając z flagi FD_CLOEXEC (close-on-exec).
+
+Powyższe akapity przemawiają za tym, że standardowy zestaw funkcji uniksowych do implementacji 
+programów uprzywilejowanych jest niewystarczający. Programista musi pamiętać, 
+aby przed każdym uruchomieniem programu pozbyć się uprawnień, 
+zamknąć wszystkie deskryptory plików, jak i aktywnie śledzić jakie uprawnienia w danym momencie ma program. 
+Jest to problematyczne, gdyż łatwo można o tym zapomnieć lub to przeoczyć, 
+szczególnie w przypadku większych programów/projektów.
+
+Zdolności (ang. capabilities) starają się poprawić i ułatwić pisanie programów uprzywilejowanych.
+
+
+Wszystkie zdolności są opisane w podręczniku capabilities(7) i w makrach. 
+Dwie z nich sprawiają, że jądro pomija sprawdzanie upoważnień do wykonywania pewnych akcji. Są to:
+
+CAP_DAC_READ_SEARCH nie sprawdza ustawienia flagi read dla plików oraz flag read i execute dla katalogów,
+CAP_KILL nie sprawdza uprawnień do wysyłania sygnałów, a dokładniej nie jest brane pod uwagę to, 
+czy ruid lub euid procesu wysyłającego sygnał pokrywa się z ruid lub euid sygnału odbierającego sygnał.
+Aby proces użytkownika wysłał sygnał do innego procesu, powinien być uprzywilejowany 
+(mieć zdolność CAP_KILL) lub ruid/euid procesu użytkownika musi być równe ruid lub suid procesu docelowego. 
+W przypadku SIGCONT wystarczająca jest przynależność do jednej sesji (procesów wysyłających i odbierających).
