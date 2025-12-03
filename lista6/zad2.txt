@@ -29,7 +29,7 @@ bool my_access(struct stat *sb, int mode) {
     gid_t groups[MAX_GROUPS_NUMBER];
     int ngroups = getgroups(MAX_GROUPS_NUMBER, groups);
 
-    // 1. Root – uproszczona wersja (możesz opisać w komentarzu)
+    // 1. Root
     if (uid == 0) {
         if (mode & X_OK) {
             // root zwykle wymaga, żeby któryś bit execute był ustawiony
@@ -46,7 +46,7 @@ bool my_access(struct stat *sb, int mode) {
     if (uid == sb->st_uid) {
         perm_bits = (sb->st_mode >> 6) & 0x7;      // user rwx
     } else {
-        // 3. Sprawdź, czy jesteśmy w grupie pliku
+        // 3.czy jesteśmy w grupie pliku
         bool in_group = (gid == sb->st_gid);
         for (int i = 0; i < ngroups && !in_group; i++) {
             if (groups[i] == sb->st_gid)
@@ -60,7 +60,7 @@ bool my_access(struct stat *sb, int mode) {
         }
     }
 
-    // 4. Dopasuj do żądanego mode
+    // 4. żądany mode
     if ((mode & R_OK) && !(perm_bits & 4)) return false;
     if ((mode & W_OK) && !(perm_bits & 2)) return false;
     if ((mode & X_OK) && !(perm_bits & 1)) return false;

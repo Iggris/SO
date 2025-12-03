@@ -20,7 +20,7 @@ the real UID and saved set-user-ID are also set.
 setreuid(-1, 2000) - funkcja przyjmuje jako argumenty (ruid, euid) typu uid_t i jeżeli dostanie -1 jako któryś 
 z argumentów, to ta wartość pozostanie niezmieniona. Stąd mamy ruid=1000 (niezmienione) oraz euid=2000. 
 Z ostatniego paragrafu mamy, iż po zmianie ruid lub euid, zmienia się równiaż suid na wartość nowego euid. 
-Ostatecznie mamy więc ruid=1000, euid=2000, suid=2000.
+Ostatecznie mamy więc ruid=1000, euid=2000, suid=0.
 
 
 setreuid() sets real and effective user IDs of the calling process.
